@@ -1,0 +1,6 @@
+@ZatcaApi_HostAddress = http://localhost:5030
+
+GET {{ZatcaApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
