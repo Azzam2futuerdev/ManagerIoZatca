@@ -8,7 +8,6 @@ const API_PATHS = {
     clearance: 'https://localhost:7106/invoice-clearance',
     reporting: 'https://localhost:7106/invoice-reporting'
 };
-
 function encodeToBase64(data) {
     try {
         const jsonString = JSON.stringify(data);
@@ -16,8 +15,18 @@ function encodeToBase64(data) {
         const base64String = btoa(String.fromCharCode.apply(null, utf8Bytes));
         return base64String;
     } catch (error) {
+        console.error('Error encoding to Base64:', error);
         throw error;
     }
+}
+
+function decodeBase64(base64String) {
+    const binaryString = atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
 }
 
 async function sendToGateway(apiPath, extractedData) {
@@ -30,7 +39,7 @@ async function sendToGateway(apiPath, extractedData) {
     }
 
     apiResponseTextarea.value = '';
-    qrCodeDiv.value = '';
+    qrCodeDiv.innerHTML = '';
 
     const encodedData = encodeToBase64(extractedData);
 
@@ -49,7 +58,7 @@ async function sendToGateway(apiPath, extractedData) {
         const response = await fetch(apiPath, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=UTF-8'
             },
             body: JSON.stringify(requestData)
         });
@@ -79,17 +88,16 @@ async function sendToGateway(apiPath, extractedData) {
         }
 
         if (responseBody.base64SignedInvoice && responseBody.xmlFileName) {
-            const decodedInvoice = atob(responseBody.base64SignedInvoice);
+            const decodedInvoice = decodeBase64(responseBody.base64SignedInvoice);
             downloadFile(decodedInvoice, responseBody.xmlFileName);
         }
     } catch (error) {
-        console.error('Network Error:', error);
         apiResponseTextarea.value = `Network error: ${error}`;
     }
 }
 
 function downloadFile(data, filename) {
-    const blob = new Blob([data], { type: 'application/xml' });
+    const blob = new Blob([data], { type: 'application/xml;charset=UTF-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.style.display = 'none';
@@ -99,7 +107,6 @@ function downloadFile(data, filename) {
     a.click();
     window.URL.revokeObjectURL(url);
 }
-
 
 document.addEventListener('DOMContentLoaded', (event) => {
     const parentDiv = document.querySelector('.lg\\:mb-4');

@@ -13,6 +13,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Data\ManagerIO_Extension.js" />
+	  <None Remove="Data\Zatca eInvoice.manager" />
+	  <None Remove="History.db" />
+	  <None Remove="ManagerIO Files\ManagerIO_Extension.js" />
+	  <None Remove="ManagerIO Files\Zatca eInvoice.manager" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.5" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="6.0.0" />
@@ -23,6 +31,10 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Zatca.eInvoice\Zatca.eInvoice.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="ManagerIO Files\" />
 	</ItemGroup>
 
 </Project>

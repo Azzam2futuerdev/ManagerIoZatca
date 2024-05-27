@@ -115,7 +115,7 @@ public class Item
 public class TaxCode
 {
     public string Name { get; set; }
-    public string label { get; set; } = "";
+    public string Label { get; set; } = "";
     public double Rate { get; set; } = 0;
 }
 

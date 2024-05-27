@@ -9,14 +9,15 @@ namespace ZatcaApi.Helpers
 {
     public class MappingManager
     {
-        public static Invoice GenerateInvoiceObject(GatewayRequestApi gatewayRequest, BusinessInfo businessInfo, Int32 iCv = 0, int pIh = 0 )
+        public static Invoice GenerateInvoiceObject(GatewayRequestApi gatewayRequest, BusinessInfo businessInfo, Int32 iCv = 0, int pIh = 0)
         {
             string decodedDataJson = DecodeInvoiceData(gatewayRequest.InvoiceData);
-            
+
             ManagerInvoice mi = JsonConvert.DeserializeObject<ManagerInvoice>(decodedDataJson);
-            string invoiceCurrencyCode = DetermineInvoiceCurrencyCode(mi);
+            string invoiceCurrencyCode = DetermineInvoiceCurrencyCode(mi); //Need more Invoice Sample for Foreign Curency
 
             double ExchangeRate = mi.Data.ExchangeRate;
+
             bool AmountsIncludeTax = mi.Data.AmountsIncludeTax;
 
             Invoice invoice = new Invoice
@@ -35,7 +36,11 @@ namespace ZatcaApi.Helpers
             invoice.AccountingSupplierParty = CreateAccountingSupplierParty(businessInfo);
             invoice.AccountingCustomerParty = CreateAccountingCustomerParty(gatewayRequest.CustomerInfo);
 
-            invoice.Delivery = new Delivery() { ActualDeliveryDate = mi.Data.IssueDate };
+            invoice.Delivery = new Delivery()
+            {
+                ActualDeliveryDate = mi.Data.IssueDate,
+                LatestDeliveryDate = mi.Data.IssueDate //?
+            };
 
             invoice.PaymentMeans = new PaymentMeans("10");
 
@@ -44,16 +49,13 @@ namespace ZatcaApi.Helpers
                 invoice.AllowanceCharge = CreateAllowanceCharge(mi.Data.Lines, invoiceCurrencyCode);
                 invoice.InvoiceLine = CreateInvoiceLines(mi.Data.Lines, invoiceCurrencyCode).ToArray();
                 invoice.TaxTotal = CalculateTaxTotals(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax).ToArray();
-                invoice.LegalMonetaryTotal = CalculateLegalMonetaryTotal(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax );
-            }
-            else
-            {
-                Console.WriteLine("No lines found in the invoice data.");
+                invoice.LegalMonetaryTotal = CalculateLegalMonetaryTotal(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax);
             }
 
             return invoice;
         }
 
+        //need more info about PIH
         private static string GeneratePIH(int pIh)
         {
             using (SHA256 sha256 = SHA256.Create())
@@ -83,15 +85,12 @@ namespace ZatcaApi.Helpers
                 {
                     invoiceCurrencyCode = foreignCurrency.Code;
                 }
-
-                Console.WriteLine(foreignCurrency.Code);
-                Console.WriteLine(foreignCurrency.DecimalPlaces);
             }
 
             return invoiceCurrencyCode;
         }
 
-        private static List<AdditionalDocumentReference> CreateAdditionalDocumentReferences(Int32 iCv = 1, int pIh=0)
+        private static List<AdditionalDocumentReference> CreateAdditionalDocumentReferences(Int32 iCv = 1, int pIh = 0)
         {
             List<AdditionalDocumentReference> references = new List<AdditionalDocumentReference>();
 
@@ -207,12 +206,15 @@ namespace ZatcaApi.Helpers
 
             foreach (var line in lines)
             {
-                if (line.TaxCode != null ) 
+                if (line.TaxCode != null)
                 {
-                    double rate = line.TaxCode.Rate;
+                    double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
+                    string taxName = line.TaxCode.Name ?? "";
                     TaxCategory taxCategory = new TaxCategory
                     {
-                        ID = new ID("UN/ECE 5305", "6", rate == 0 ? "Z" : "S"),
+                        ID = new ID("UN/ECE 5305", "6", rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
+                        //TaxExemptionReason = "",  "E"
+                        //TaxExemptionReasonCode = "", "E"
                         Percent = rate,
                         TaxScheme = new TaxScheme
                         {
@@ -223,11 +225,10 @@ namespace ZatcaApi.Helpers
                 }
                 else
                 {
-                    double rate = 0;
                     TaxCategory taxCategory = new TaxCategory
                     {
-                        ID = new ID("UN/ECE 5305", "6", "Z"),
-                        Percent = rate,
+                        ID = new ID("UN/ECE 5305", "6", "O"), 
+                        Percent = 0,
                         TaxScheme = new TaxScheme
                         {
                             ID = new ID("UN/ECE 5153", "6", "VAT")
@@ -273,24 +274,27 @@ namespace ZatcaApi.Helpers
 
                 //if (line.TaxCode != null)
                 //{
-                
+
                 double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
+                string taxName = line.TaxCode.Name ?? "";
 
                 invoiceLine.Item.ClassifiedTaxCategory = new ClassifiedTaxCategory
+                {
+
+                    Percent = rate,
+                    ID = new ID(rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
+                    //TaxExemptionReason = "",  "E"
+                    //TaxExemptionReasonCode = "", "E"
+                    TaxScheme = new TaxScheme
                     {
-                        
-                        Percent = rate,
-                        ID = rate == 0 ? new ID("Z") : new ID("S"),
-                        TaxScheme = new TaxScheme
-                        {
-                            ID = new ID("VAT")
-                        }
-                    };
-                    invoiceLine.TaxTotal = new TaxTotal
-                    {
-                        TaxAmount = new Amount(currencyCode, Math.Round((line.Qty * line.SalesUnitPrice - line.DiscountAmount) * (rate / 100), 2)),
-                        RoundingAmount = new Amount(currencyCode, Math.Round(((line.Qty * line.SalesUnitPrice) - line.DiscountAmount) + ((line.Qty * line.SalesUnitPrice - line.DiscountAmount) * (rate / 100)), 2))
-                    };
+                        ID = new ID("VAT")
+                    }
+                };
+                invoiceLine.TaxTotal = new TaxTotal
+                {
+                    TaxAmount = new Amount(currencyCode, Math.Round((line.Qty * line.SalesUnitPrice - line.DiscountAmount) * (rate / 100), 2)),
+                    RoundingAmount = new Amount(currencyCode, Math.Round(((line.Qty * line.SalesUnitPrice) - line.DiscountAmount) + ((line.Qty * line.SalesUnitPrice - line.DiscountAmount) * (rate / 100)), 2))
+                };
                 //}
 
                 invoiceLines.Add(invoiceLine);
@@ -320,19 +324,21 @@ namespace ZatcaApi.Helpers
                     }
                     totalTaxAmount += lineTaxAmount;
 
-                    double rate = line.TaxCode.Rate;
+                    
+                    double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
+                    string taxName = line.TaxCode.Name ?? "";
 
                     TaxSubtotal taxSubtotal = new TaxSubtotal
                     {
                         TaxableAmount = new Amount(currencyCode, (line.Qty * line.SalesUnitPrice) - line.DiscountAmount),
                         TaxAmount = new Amount(currencyCode, lineTaxAmount),
-                        
+
                         TaxCategory = new TaxCategory
                         {
                             Percent = rate,
-                            ID = new ID(rate == 0 ? "Z" : "S"),
-                            TaxExemptionReasonCode = rate == 0 ? "VATEX - SA - 35" : null,
-                            TaxExemptionReason = rate == 0 ? "Medicines and medical equipment | الأدوية والمعدات الطبية" : null,
+                            ID = new ID(rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
+                            //TaxExemptionReasonCode = rate == 0 ? "VATEX - SA - 35" : null, 
+                            //TaxExemptionReason = rate == 0 ? "Medicines and medical equipment | الأدوية والمعدات الطبية" : null,
                             TaxScheme = new TaxScheme
                             {
                                 ID = new ID("VAT")
@@ -359,93 +365,7 @@ namespace ZatcaApi.Helpers
             return taxTotals;
         }
 
-        //private static List<TaxTotal> CalculateTaxTotals(List<Line> lines, string currencyCode)
-        //{
-        //    List<TaxTotal> taxTotals = new List<TaxTotal>();
-
-        //    double totalTaxAmount = 0;
-
-        //    List<TaxSubtotal> taxSubtotals = new List<TaxSubtotal>();
-
-        //    foreach (var line in lines)
-        //    {
-        //        if (line.TaxCode != null)
-        //        {
-        //            double lineTaxAmount = Math.Round((line.Qty * line.SalesUnitPrice - line.DiscountAmount) * (line.TaxCode.Rate/100), 2);
-        //            totalTaxAmount += lineTaxAmount;
-
-        //            TaxSubtotal taxSubtotal = new TaxSubtotal
-        //            {
-        //                TaxableAmount = new Amount(currencyCode, (line.Qty * line.SalesUnitPrice) - line.DiscountAmount),
-        //                TaxAmount = new Amount(currencyCode, lineTaxAmount),
-        //                TaxCategory = new TaxCategory
-        //                {
-        //                    ID = new ID("UN/ECE 5305", "6", line.TaxCode.Rate == 0 ? "Z" : "S"),
-        //                    Percent = line.TaxCode.Rate,
-        //                    TaxScheme = new TaxScheme
-        //                    {
-        //                        ID = new ID("UN/ECE 5153", "6", "VAT")
-        //                    }
-        //                }
-        //            };
-        //            taxSubtotals.Add(taxSubtotal);
-        //        }
-        //    }
-
-
-        //    taxTotals.Add(new TaxTotal
-        //    {
-        //        TaxAmount = new Amount(currencyCode, totalTaxAmount),
-        //    });
-
-        //    TaxTotal taxTotal = new TaxTotal
-        //    {
-        //        TaxAmount = new Amount(currencyCode, totalTaxAmount),
-        //        TaxSubtotal = taxSubtotals.ToArray()
-        //    };
-
-        //    taxTotals.Add(taxTotal);
-
-        //    return taxTotals;
-        //}
-
-        //private static LegalMonetaryTotal CalculateLegalMonetaryTotal(List<Line> lines, string currencyCode)
-        //{
-        //    double lineExtensionAmount = 0;
-        //    double taxExclusiveAmount = 0;
-        //    double taxInclusiveAmount = 0;
-        //    double allowanceTotalAmount = 0;
-
-        //    foreach (var line in lines)
-        //    {
-        //        if (line != null)
-        //        {
-        //            double lineQty = line.Qty;
-        //            double lineSalesUnitPrice = line.SalesUnitPrice;
-        //            double lineDiscountAmount = line.DiscountAmount;
-        //            double lineTaxRate = line.TaxCode?.Rate ?? 0;
-
-        //            lineExtensionAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-        //            taxExclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-
-        //            double taxAmount = line.TaxCode != null ? Math.Round((lineQty * lineSalesUnitPrice - lineDiscountAmount) * (lineTaxRate/100), 2) : 0;
-
-        //            taxInclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount + taxAmount, 2);
-        //            allowanceTotalAmount += lineDiscountAmount;
-        //        }
-        //    }
-
-        //    return new LegalMonetaryTotal
-        //    {
-        //        LineExtensionAmount = new Amount(currencyCode, lineExtensionAmount),
-        //        TaxExclusiveAmount = new Amount(currencyCode, taxExclusiveAmount),
-        //        TaxInclusiveAmount = new Amount(currencyCode, taxInclusiveAmount),
-        //        AllowanceTotalAmount = new Amount(currencyCode, allowanceTotalAmount),
-        //        PrepaidAmount = new Amount(currencyCode, 0),
-        //        PayableAmount = new Amount(currencyCode, taxInclusiveAmount)
-        //    };
-        //}
-
+        
         private static LegalMonetaryTotal CalculateLegalMonetaryTotal(List<Line> lines, string currencyCode, bool amountsIncludeTax)
         {
             double lineExtensionAmount = 0;
@@ -492,8 +412,5 @@ namespace ZatcaApi.Helpers
                 PayableAmount = new Amount(currencyCode, taxInclusiveAmount)
             };
         }
-
-
-
     }
 }
