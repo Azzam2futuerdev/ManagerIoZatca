@@ -27,6 +27,21 @@ Currently tested using their sandbox APIs.
 
 3. Open the extension in Manager Business and adjust the necessary parameters.
 
+## Customer Info Format
+When adding customer information to each customer in the business data, use the following format:
+
+```
+"Party.PostalAddress.StreetName": "صلاح الدين | Salah Al-Din",
+"Party.PostalAddress.BuildingNumber": "1111",
+"Party.PostalAddress.CitySubdivisionName": "المروج | Al-Murooj",
+"Party.PostalAddress.CityName": "الرياض | Riyadh",
+"Party.PostalAddress.PostalZone": "12222",
+"Party.PostalAddress.Country.IdentificationCode": "SA",
+"PartyTaxScheme.CompanyID": "399999999800003",
+"PartyTaxScheme.TaxScheme.ID": "VAT",
+"PartyLegalEntity.RegistrationName": "شركة نماذج فاتورة المحدودة | Fatoora Samples LTD"
+```
+
 ## Ongoing Work
 Please note that there is still much to be done on this project, especially in the conversion of ManagerIO Invoices to Zatca Invoices. Many parts are still being improved. Your feedback and contributions are welcome to enhance the functionality and efficiency of this tool.
 
