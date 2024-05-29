@@ -8,6 +8,7 @@ const API_PATHS = {
     clearance: 'https://localhost:7106/invoice-clearance',
     reporting: 'https://localhost:7106/invoice-reporting'
 };
+
 function encodeToBase64(data) {
     try {
         const jsonString = JSON.stringify(data);
@@ -20,18 +21,10 @@ function encodeToBase64(data) {
     }
 }
 
-function decodeBase64(base64String) {
-    const binaryString = atob(base64String);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return new TextDecoder().decode(bytes);
-}
-
 async function sendToGateway(apiPath, extractedData) {
     const apiResponseTextarea = document.getElementById('json-response');
     const qrCodeDiv = document.getElementById('qrcode-content');
+    const downloadLink = document.getElementById('download-link');
 
     if (!extractedData) {
         apiResponseTextarea.value = `extractedData is null or undefined.`;
@@ -40,6 +33,8 @@ async function sendToGateway(apiPath, extractedData) {
 
     apiResponseTextarea.value = '';
     qrCodeDiv.innerHTML = '';
+    downloadLink.style.display = 'none';
+    downloadLink.href = '#';
 
     const encodedData = encodeToBase64(extractedData);
 
@@ -74,7 +69,6 @@ async function sendToGateway(apiPath, extractedData) {
         apiResponseTextarea.value = `Status Code: ${response.status}\n\nResponse Content:\n\n${JSON.stringify(responseBody, null, 2)}`;
 
         if (responseBody.base64QrCode) {
-            qrCodeDiv.innerHTML = '';
             new QRCode(qrCodeDiv, {
                 text: responseBody.base64QrCode,
                 width: 160,
@@ -83,17 +77,30 @@ async function sendToGateway(apiPath, extractedData) {
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.L
             });
-        } else {
-            qrCodeDiv.innerHTML = '';
         }
 
         if (responseBody.base64SignedInvoice && responseBody.xmlFileName) {
             const decodedInvoice = decodeBase64(responseBody.base64SignedInvoice);
-            downloadFile(decodedInvoice, responseBody.xmlFileName);
+            const blob = new Blob([decodedInvoice], { type: 'application/xml;charset=UTF-8' });
+            const url = window.URL.createObjectURL(blob);
+
+            downloadLink.href = url;
+            downloadLink.download = responseBody.xmlFileName;
+            downloadLink.style.display = 'block';
         }
     } catch (error) {
+        console.error('Network Error:', error);
         apiResponseTextarea.value = `Network error: ${error}`;
     }
+}
+
+function decodeBase64(base64String) {
+    const binaryString = atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
 }
 
 function downloadFile(data, filename) {
@@ -109,38 +116,42 @@ function downloadFile(data, filename) {
 }
 
 document.addEventListener('DOMContentLoaded', (event) => {
-    const parentDiv = document.querySelector('.lg\\:mb-4');
-    if (parentDiv) {
-        const innerHTML = parentDiv.innerHTML;
-        const containsSalesInvoice = innerHTML.includes("Sales Invoice");
-        const containsDash = innerHTML.includes(" — ");
+    const url = window.location.href;
+    const isInvoicePage = url.includes('/sales-invoice-form?') || url.includes('/credit-note-form?') || url.includes('/debit-note-form?');
+    if (isInvoicePage) {
+        const updateButton = document.querySelector('button.btn.btn-success[onclick="ajaxPost(true)"]');
+        if (updateButton) {
+            const parentDiv = document.querySelector('.lg\\:mb-4');
+            if (parentDiv) {
+                const innerHTML = parentDiv.innerHTML;
+                const containsDash = innerHTML.includes(" — ");
+                if (containsDash) {
+                    const vModelFormDiv = document.getElementById('v-model-form');
+                    const button = document.createElement('button');
+                    button.innerHTML = '<i class="fas fa-edit" style="color:green; font-size: 14px;"></i> Zatca eInvoice';
+                    button.classList.add('bg-white', 'font-bold', 'border', 'border-neutral-300', 'hover:border-neutral-400', 'text-neutral-700', 'hover:text-neutral-800', 'rounded', 'py-2', 'px-4', 'hover:no-underline', 'hover:bg-neutral-100', 'hover:shadow-inner', 'dark:focus:ring-gray-700', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-600', 'dark:hover:text-white', 'dark:hover:bg-gray-700');
+                    button.style.fontSize = '12px';
 
-        if (containsSalesInvoice && containsDash) {
-            const vModelFormDiv = document.getElementById('v-model-form');
-            const button = document.createElement('button');
-            button.innerHTML = '<i class="fas fa-edit" style="color:green; font-size: 14px;"></i> Zatca eInvoice';
-            button.classList.add('bg-white', 'font-bold', 'border', 'border-neutral-300', 'hover:border-neutral-400', 'text-neutral-700', 'hover:text-neutral-800', 'rounded', 'py-2', 'px-4', 'hover:no-underline', 'hover:bg-neutral-100', 'hover:shadow-inner', 'dark:focus:ring-gray-700', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-600', 'dark:hover:text-white', 'dark:hover:bg-gray-700');
-            button.style.fontSize = '12px';
+                    button.onclick = function () {
+                        openPopupForm(extractedData);
+                    };
 
-            button.onclick = function () {
-                openPopupForm(extractedData);
-            };
+                    const headerDiv = vModelFormDiv.querySelector('.flex');
+                    headerDiv.appendChild(button);
 
-            const headerDiv = vModelFormDiv.querySelector('.flex');
-            headerDiv.appendChild(button);
+                    const scriptElements = document.querySelectorAll('#nonBatchView script');
 
-            const scriptElements = document.querySelectorAll('#nonBatchView script');
-
-            scriptElements.forEach(scriptElement => {
-                const scriptContent = scriptElement.textContent.trim();
-                if (scriptContent.includes('app = new Vue')) {
-                    extractedData = extractDataFromScript(scriptContent);
+                    scriptElements.forEach(scriptElement => {
+                        const scriptContent = scriptElement.textContent.trim();
+                        if (scriptContent.includes('app = new Vue')) {
+                            extractedData = extractDataFromScript(scriptContent);
+                        }
+                    });
                 }
-            });
+            }
         }
     }
 });
-
 
 function removeUnnecessaryProperties(obj) {
     const propertiesToRemove = ['SalesInvoiceCustomTheme', 'SalesInvoiceFooters', 'SaleItemAccount'];
@@ -166,7 +177,7 @@ function extractDataFromScript(scriptContent) {
 
     const InvoiceId = app.id;
     let InvoiceType = 388;
-    const InvoiceSubType = 1;
+    const InvoiceSubType = '0100000';
     const IssueDate = app.IssueDate;
     const Reference = app.Reference;
     const CustomerName = app.Customer.Name;
@@ -205,92 +216,98 @@ function extractDataFromScript(scriptContent) {
 }
 
 function openPopupForm(extractedData) {
-    if (extractedData && extractedData.InvoiceId) {
+    const statusField = app.CustomFields2.Strings[eInvoiceStatusCustomFieldGuid];
+    console.log("statusField : ", statusField)
 
-        const invoiceSubTypeOptions = {
-            1: "Standard",
-            2: "Simplified"
-        };
-
-        let optionsHtml = '';
-        for (const key in invoiceSubTypeOptions) {
-            const selected = extractedData.InvoiceSubType == key ? 'selected' : '';
-            optionsHtml += `<option value="${key}" ${selected}>${invoiceSubTypeOptions[key]}</option>`;
-        }
-
+    if (statusField != null && statusField.length > 5) {
+        alert("This invoice has already been stamped.");
+    } else {
         const modalHtml = `
-    <div id="popup-modal" class="modal" style="display: block;">
-        <div class="modal-dialog" style="width: 800px;">
-            <div class="modal-content" style="border-radius: 8px;">
-                <div class="modal-header" style="background-color: #007bff; color: white; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-                    <button type="button" class="close" onclick="document.getElementById('popup-modal').remove();" style="color: white;">×</button>
-                    <div class="header">Zatca eInvoice</div>
-                </div>
-                
-                <div class="modal-body" style="background-color: #f9f9f9; padding: 20px;">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p><strong>Invoice Id:</strong> ${extractedData.InvoiceId}</p>
-                            <p><strong>Invoice Type:</strong> ${extractedData.InvoiceType}</p>
-                            <p><strong>Invoice SubType:</strong></p>
-                            <select id="invoice-subtype-select" class="form-control">
-                                ${optionsHtml}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Issue Date:</strong> ${extractedData.IssueDate}</p>
-                            <p><strong>Reference:</strong> ${extractedData.Reference}</p>
-                            <p><strong>Customer:</strong> ${extractedData.CustomerName}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-12" style="display: flex; justify-content: space-between;">
-                            <div style="width: 100%;">
-                                <textarea id="json-request" class="form-control input-sm language-json" style="width: 100%; min-height: 180px; height: auto; background-color: white; color: #000; margin-bottom: 10px; margin-right: 5px;" readonly>${JSON.stringify(extractedData.Data, null, 2)}</textarea>
-                            </div>
-                            <div style="width: 15px;"> &nbsp; </div>
-                            <div style="width: 30%;">
-                                <div id="qrcode-content" style="background-color: white; border: 1px solid #bcbcbc; width: 180px; height: 180px; padding: 10px;">
-                                    <!-- QR Code div -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+		<div id="popup-modal" class="modal" style="display: block;">
+			<div class="modal-dialog" style="width: 800px;">
+				<div class="modal-content" style="border-radius: 8px;">
+					<div class="modal-header" style="background-color: #6c757d; color: white; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+						<button type="button" class="close" onclick="document.getElementById('popup-modal').remove();" style="color: white;">×</button>
+						<div class="header">Zatca eInvoice</div>
+					</div>
+					
+					<div class="modal-body" style="background-color: #f9f9f9; padding: 20px;">
+					
+						<div class="row mb-3">
+							<div class="col-md-12">
+								<table class="table table-bordered">
+									<tbody>
+										<tr>
+											<td><strong>Invoice Id:</strong></td>
+											<td>${extractedData.InvoiceId}</td>
+											<td><strong>Reference:</strong></td>
+											<td>${extractedData.Reference}</td>
+										</tr>
+										<tr>
+											<td><strong>Customer:</strong></td>
+											<td>${extractedData.CustomerName}</td>
+											<td><strong>Issue Date:</strong></td>
+											<td>${extractedData.IssueDate}</td>
+										</tr>
+										<tr>
+											<td><strong>Invoice Type:</strong></td>
+											<td>${extractedData.InvoiceType}</td>
+											<td><strong>Invoice SubType:</strong></td>
+											<td><input type="text" id="invoice-subtype-inputbox" placeholder = "0000000" class="form-control input-sm tt-input" value="0100000"></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						
+						<div class="row mb-3">
+							<div class="col-md-12" style="display: flex; justify-content: space-between;">
+								<div style="width: 100%;">
+									<textarea id="json-request" class="form-control input-sm language-json" style="width: 100%; min-height: 180px; height: auto; background-color: white; color: #000; margin-bottom: 10px; margin-right: 5px;" readonly>${JSON.stringify(extractedData.Data, null, 2)}</textarea>
+								</div>
+								<div style="width: 15px;"> &nbsp; </div>
+								<div style="width: 30%;">
+									<div id="qrcode-content" style="background-color: white; border: 1px solid #bcbcbc; width: 180px; height: 180px; padding: 10px;">
+										<!-- QR Code div -->
+									</div>
+									<a id="download-link" href="#" style="display: none; margin-top: 10px; text-align: center;">Download XML File</a>
+								</div>
+							</div>
+						</div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <textarea id="json-response" class="form-control input-sm language-json" style="width: 100%; min-height: 200px; height: auto; background-color: white; color: #000; padding: 10px;" readonly></textarea>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer" style="background-color: #f9f9f9; padding: 10px 0px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="margin-right: auto;">
-                            <button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.generateXml, extractedData)">Generate XML</button>
-                            <button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.compliance, extractedData)">Compliance Check</button>
-                            <button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.clearance, extractedData)">Clearance</button>
-                            <button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.reporting, extractedData)">Reporting</button>
-                            <img src="resources/ajax-loader.gif" style="display: none; margin-left: 10px; margin-right: 10px" id="api-indicator">
-                        </div>
-                        <div>
-                            <button class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;" onclick="updateInvoice()">Update</button>
-                            <button class="btn btn-default" style="background-color: #6c757d; border-color: #6c757d; color: white;" onclick="document.getElementById('popup-modal').remove();">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
+						<div class="row mb-3">
+							<div class="col-md-12">
+								<textarea id="json-response" class="form-control input-sm language-json" style="width: 100%; min-height: 200px; height: auto; background-color: white; color: #000; padding: 10px;" readonly></textarea>
+							</div>
+						</div>
+						
+						<div class="modal-footer" style="background-color: #f9f9f9; padding: 10px 0px; display: flex; justify-content: space-between; align-items: center;">
+							<div style="margin-right: auto;">
+								<!-- button class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;" onclick="sendToGateway(API_PATHS.generateXml, extractedData)">Generate XML</button -->
+								<button class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;" onclick="sendToGateway(API_PATHS.compliance, extractedData)">Compliance Check</button>
+								<button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.clearance, extractedData)">Clearance</button>
+								<button class="btn btn-primary" style="background-color: #007bff; border-color: #007bff;" onclick="sendToGateway(API_PATHS.reporting, extractedData)">Reporting</button>
+								<img src="resources/ajax-loader.gif" style="display: none; margin-left: 10px; margin-right: 10px" id="api-indicator">
+							</div>
+							<div>
+								<button class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;" onclick="updateInvoice()">Update Invoice</button>
+								<button class="btn btn-default" style="background-color: #6c757d; border-color: #6c757d; color: white;" onclick="document.getElementById('popup-modal').remove();">Close</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		`;
 
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = modalHtml;
         document.body.appendChild(modalDiv);
-    }
 
-    document.getElementById('invoice-subtype-select').addEventListener('change', function () {
-        extractedData.InvoiceSubType = this.value;
-    });
+        document.getElementById('invoice-subtype-inputbox').addEventListener('change', function () {
+            extractedData.InvoiceSubType = this.value;
+        });
+    }
 }
 
 function updateInvoice() {

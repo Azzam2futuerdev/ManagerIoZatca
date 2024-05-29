@@ -97,6 +97,12 @@ namespace Zatca.eInvoice.Models
         [XmlElement(ElementName = "Percent", Namespace = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2")]
         public double Percent { get; set; }
 
+        [XmlElement(ElementName = "TaxExemptionReason", Namespace = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2")]
+        public string TaxExemptionReason {  get; set; }
+
+        [XmlElement(ElementName = "TaxExemptionReasonCode", Namespace = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2")]
+        public string TaxExemptionReasonCode {  get; set; }
+
         //[XmlIgnore]
         //[JsonIgnore]
         //public decimal NumericValue

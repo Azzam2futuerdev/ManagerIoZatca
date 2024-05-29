@@ -1,37 +1,41 @@
 ﻿using Newtonsoft.Json;
-using System.Security.Cryptography;
 using System.Text;
 using Zatca.eInvoice.Helpers;
 using Zatca.eInvoice.Models;
 using ZatcaApi.Models;
+using static ZatcaApi.Helpers.VATInfoHelper;
 
 namespace ZatcaApi.Helpers
 {
     public class MappingManager
     {
-        public static Invoice GenerateInvoiceObject(GatewayRequestApi gatewayRequest, BusinessInfo businessInfo, Int32 iCv = 0, int pIh = 0)
+
+        public static Invoice GenerateInvoiceObject(GatewayRequestApi gatewayRequest, BusinessInfo businessInfo, BusinessDataCustomField businessDataCustomField, Int32 iCv, string pIh)
         {
             string decodedDataJson = DecodeInvoiceData(gatewayRequest.InvoiceData);
 
             ManagerInvoice mi = JsonConvert.DeserializeObject<ManagerInvoice>(decodedDataJson);
-            string invoiceCurrencyCode = DetermineInvoiceCurrencyCode(mi); //Need more Invoice Sample for Foreign Curency
 
+            string invoiceCurrencyCode = DetermineInvoiceCurrencyCode(mi); //Need more Invoice Sample for Foreign Curency
             double ExchangeRate = mi.Data.ExchangeRate;
+            string TaxCurrencyCode = mi.BaseCurrency?.Code ?? "SAR";
 
             bool AmountsIncludeTax = mi.Data.AmountsIncludeTax;
 
-            Invoice invoice = new Invoice
+            Invoice invoice = new()
             {
                 ProfileID = "reporting:1.0",
                 ID = new ID(mi.Data.Reference),
                 UUID = mi.Data.Id,
                 IssueDate = mi.Data.IssueDate,
                 IssueTime = "00:00:00",
-                InvoiceTypeCode = new InvoiceTypeCode((InvoiceType)gatewayRequest.InvoiceType, (InvoiceSubType)gatewayRequest.InvoiceSubType),
+                // need improvement for InvoiceSubType
+                InvoiceTypeCode = new InvoiceTypeCode((InvoiceType)gatewayRequest.InvoiceType, gatewayRequest.InvoiceSubType),
                 DocumentCurrencyCode = invoiceCurrencyCode,
-                TaxCurrencyCode = mi.BaseCurrency?.Code ?? "SAR"
+                TaxCurrencyCode = TaxCurrencyCode
             };
 
+            invoice.BillingReference = CreateBillingReferences(mi);
             invoice.AdditionalDocumentReference = CreateAdditionalDocumentReferences(iCv, pIh).ToArray();
             invoice.AccountingSupplierParty = CreateAccountingSupplierParty(businessInfo);
             invoice.AccountingCustomerParty = CreateAccountingCustomerParty(gatewayRequest.CustomerInfo);
@@ -42,27 +46,17 @@ namespace ZatcaApi.Helpers
                 LatestDeliveryDate = mi.Data.IssueDate //?
             };
 
-            invoice.PaymentMeans = new PaymentMeans("10");
+            invoice.PaymentMeans = CreatePaymentMeans(mi, businessDataCustomField);
 
             if (mi?.Data?.Lines != null)
             {
-                invoice.AllowanceCharge = CreateAllowanceCharge(mi.Data.Lines, invoiceCurrencyCode);
-                invoice.InvoiceLine = CreateInvoiceLines(mi.Data.Lines, invoiceCurrencyCode).ToArray();
-                invoice.TaxTotal = CalculateTaxTotals(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax).ToArray();
+                invoice.AllowanceCharge = CreateAllowanceCharge(mi.Data.Lines, invoiceCurrencyCode, businessDataCustomField);
+                invoice.InvoiceLine = CreateInvoiceLines(mi.Data.Lines, invoiceCurrencyCode, businessDataCustomField).ToArray();
+                invoice.TaxTotal = CalculateTaxTotals(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax, businessDataCustomField).ToArray();
                 invoice.LegalMonetaryTotal = CalculateLegalMonetaryTotal(mi.Data.Lines, invoiceCurrencyCode, AmountsIncludeTax);
             }
 
             return invoice;
-        }
-
-        //need more info about PIH
-        private static string GeneratePIH(int pIh)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] inputBytes = Encoding.UTF8.GetBytes(pIh.ToString());
-                return Convert.ToBase64String(sha256.ComputeHash(inputBytes));
-            }
         }
 
         private static string DecodeInvoiceData(string encodedData)
@@ -90,23 +84,49 @@ namespace ZatcaApi.Helpers
             return invoiceCurrencyCode;
         }
 
-        private static List<AdditionalDocumentReference> CreateAdditionalDocumentReferences(Int32 iCv = 1, int pIh = 0)
+        private static BillingReference CreateBillingReferences(ManagerInvoice mi)
         {
-            List<AdditionalDocumentReference> references = new List<AdditionalDocumentReference>();
+            InvoiceDocumentReference invoiceDocumentReference = null;
 
-            AdditionalDocumentReference referenceICV = new AdditionalDocumentReference
+            if (mi.Data.SalesInvoice?.Reference != null)
+            {
+                invoiceDocumentReference = new InvoiceDocumentReference
+                {
+                    ID = new ID(mi.Data.SalesInvoice.Reference)
+                };
+            }
+            else
+            {
+                if (mi.Data.PurchaseInvoice?.Reference != null)
+                {
+                    invoiceDocumentReference = new InvoiceDocumentReference
+                    {
+                        ID = new ID(mi.Data.PurchaseInvoice.Reference)
+                    };
+                }
+            }
+
+            return invoiceDocumentReference != null ? new BillingReference { InvoiceDocumentReference = invoiceDocumentReference } : null;
+
+        }
+
+        private static List<AdditionalDocumentReference> CreateAdditionalDocumentReferences(Int32 iCv, string pIh)
+        {
+            List<AdditionalDocumentReference> references = new ();
+
+            AdditionalDocumentReference referenceICV = new ()
             {
                 ID = new ID("ICV"),
                 UUID = iCv.ToString()
             };
             references.Add(referenceICV);
 
-            AdditionalDocumentReference referencePIH = new AdditionalDocumentReference
+            AdditionalDocumentReference referencePIH = new ()
             {
                 ID = new ID("PIH"),
                 Attachment = new Attachment
                 {
-                    EmbeddedDocumentBinaryObject = new EmbeddedDocumentBinaryObject(GeneratePIH(pIh))
+                    EmbeddedDocumentBinaryObject = new EmbeddedDocumentBinaryObject(pIh)
                 }
             };
             references.Add(referencePIH);
@@ -191,10 +211,29 @@ namespace ZatcaApi.Helpers
                 }
             };
         }
-
-        private static AllowanceCharge CreateAllowanceCharge(List<Line> lines, string currencyCode)
+        private static PaymentMeans CreatePaymentMeans(ManagerInvoice mi, BusinessDataCustomField businessDataCustomField)
         {
-            AllowanceCharge allowanceCharge = new AllowanceCharge
+            var paymentMeansCode = 30; // Default value Credit
+            var paymentMeans = mi.Data.CustomFields2?.Strings[businessDataCustomField.PaymentMeansCodeGuid];
+            if (paymentMeans != null)
+            {
+                var parts = paymentMeans.Split('|');
+                if (parts.Length >= 1 && int.TryParse(parts[0].Trim(), out int paymentCode))
+                {
+                    paymentMeansCode = paymentCode;
+                }
+            }
+
+            return new PaymentMeans()
+            {
+                PaymentMeansCode = paymentMeansCode.ToString(),
+                InstructionNote = mi.Data.Description
+            };
+        }
+
+        private static AllowanceCharge CreateAllowanceCharge(List<Line> lines, string currencyCode, BusinessDataCustomField businessDataCustomField)
+        {
+            AllowanceCharge allowanceCharge = new ()
             {
                 ChargeIndicator = false,
                 //AllowanceChargeReasonCode = null,
@@ -202,36 +241,41 @@ namespace ZatcaApi.Helpers
                 Amount = new Amount(currencyCode, 0)
             };
 
-            List<TaxCategory> taxCategories = new List<TaxCategory>();
+
+            List<TaxCategory> taxCategories = new();
 
             foreach (var line in lines)
             {
+
+                string itemTaxCategoryID = line.Item.CustomFields2?.Strings[businessDataCustomField.ItemTaxCategoryGuid];
+                VATInfo vatInfo = GetVATInfo(itemTaxCategoryID);
+
                 if (line.TaxCode != null)
                 {
                     double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
-                    string taxName = line.TaxCode.Name ?? "";
-                    TaxCategory taxCategory = new TaxCategory
+
+                    TaxCategory taxCategory = new()
                     {
-                        ID = new ID("UN/ECE 5305", "6", rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
-                        //TaxExemptionReason = "",  "E"
-                        //TaxExemptionReasonCode = "", "E"
+                        ID = new ID(vatInfo.CategoryID),
+                        TaxExemptionReasonCode = rate == 0 ? vatInfo.ExemptReasonCode : null,
+                        TaxExemptionReason = rate == 0 ? vatInfo.ExemptReason : null,
                         Percent = rate,
                         TaxScheme = new TaxScheme
                         {
-                            ID = new ID("UN/ECE 5153", "6", "VAT")
+                            ID = new ID("VAT")
                         }
                     };
                     taxCategories.Add(taxCategory);
                 }
                 else
                 {
-                    TaxCategory taxCategory = new TaxCategory
+                    TaxCategory taxCategory = new()
                     {
-                        ID = new ID("UN/ECE 5305", "6", "O"), 
+                        ID = new ID(itemTaxCategoryID),
                         Percent = 0,
                         TaxScheme = new TaxScheme
                         {
-                            ID = new ID("UN/ECE 5153", "6", "VAT")
+                            ID = new ID("VAT")
                         }
                     };
                     taxCategories.Add(taxCategory);
@@ -243,14 +287,17 @@ namespace ZatcaApi.Helpers
             return allowanceCharge;
         }
 
-        private static List<InvoiceLine> CreateInvoiceLines(List<Line> lines, string currencyCode)
+        private static List<InvoiceLine> CreateInvoiceLines(List<Line> lines, string currencyCode, BusinessDataCustomField businessDataCustomField)
         {
-            List<InvoiceLine> invoiceLines = new List<InvoiceLine>();
+            List<InvoiceLine> invoiceLines = new ();
             int i = 0;
 
             foreach (var line in lines)
             {
-                InvoiceLine invoiceLine = new InvoiceLine
+                string itemTaxCategoryID = line.Item.CustomFields2.Strings[businessDataCustomField.ItemTaxCategoryGuid];
+                VATInfo vatInfo = GetVATInfo(itemTaxCategoryID);
+
+                InvoiceLine invoiceLine = new()
                 {
                     ID = new ID((++i).ToString()),
                     InvoicedQuantity = new InvoicedQuantity(line.Item.UnitName, line.Qty),
@@ -276,15 +323,12 @@ namespace ZatcaApi.Helpers
                 //{
 
                 double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
-                string taxName = line.TaxCode.Name ?? "";
 
                 invoiceLine.Item.ClassifiedTaxCategory = new ClassifiedTaxCategory
                 {
 
                     Percent = rate,
-                    ID = new ID(rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
-                    //TaxExemptionReason = "",  "E"
-                    //TaxExemptionReasonCode = "", "E"
+                    ID = new ID(vatInfo.CategoryID),
                     TaxScheme = new TaxScheme
                     {
                         ID = new ID("VAT")
@@ -303,16 +347,19 @@ namespace ZatcaApi.Helpers
             return invoiceLines;
         }
 
-        private static List<TaxTotal> CalculateTaxTotals(List<Line> lines, string currencyCode, bool amountsIncludeTax)
+        private static List<TaxTotal> CalculateTaxTotals(List<Line> lines, string currencyCode, bool amountsIncludeTax, BusinessDataCustomField businessDataCustomField)
         {
-            List<TaxTotal> taxTotals = new List<TaxTotal>();
+            List<TaxTotal> taxTotals = new ();
             double totalTaxAmount = 0;
-            List<TaxSubtotal> taxSubtotals = new List<TaxSubtotal>();
+            List<TaxSubtotal> taxSubtotals = new ();
 
             foreach (var line in lines)
             {
                 if (line.TaxCode != null)
                 {
+                    string itemTaxCategoryID = line.Item.CustomFields2.Strings[businessDataCustomField.ItemTaxCategoryGuid];
+                    VATInfo vatInfo = GetVATInfo(itemTaxCategoryID);
+
                     double lineTaxAmount;
                     if (amountsIncludeTax)
                     {
@@ -324,11 +371,10 @@ namespace ZatcaApi.Helpers
                     }
                     totalTaxAmount += lineTaxAmount;
 
-                    
-                    double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
-                    string taxName = line.TaxCode.Name ?? "";
 
-                    TaxSubtotal taxSubtotal = new TaxSubtotal
+                    double rate = line.TaxCode?.Rate == null ? 0 : line.TaxCode.Rate;
+
+                    TaxSubtotal taxSubtotal = new()
                     {
                         TaxableAmount = new Amount(currencyCode, (line.Qty * line.SalesUnitPrice) - line.DiscountAmount),
                         TaxAmount = new Amount(currencyCode, lineTaxAmount),
@@ -336,9 +382,9 @@ namespace ZatcaApi.Helpers
                         TaxCategory = new TaxCategory
                         {
                             Percent = rate,
-                            ID = new ID(rate == 0 ? (taxName.Contains("Exempt") ? "E" : "Z") : "S"),
-                            //TaxExemptionReasonCode = rate == 0 ? "VATEX - SA - 35" : null, 
-                            //TaxExemptionReason = rate == 0 ? "Medicines and medical equipment | الأدوية والمعدات الطبية" : null,
+                            ID = new ID(vatInfo.CategoryID),
+                            TaxExemptionReasonCode = rate == 0 ? vatInfo.ExemptReasonCode : null,
+                            TaxExemptionReason = rate == 0 ? vatInfo.ExemptReason : null,
                             TaxScheme = new TaxScheme
                             {
                                 ID = new ID("VAT")
@@ -354,7 +400,7 @@ namespace ZatcaApi.Helpers
                 TaxAmount = new Amount(currencyCode, totalTaxAmount),
             });
 
-            TaxTotal taxTotal = new TaxTotal
+            TaxTotal taxTotal = new()
             {
                 TaxAmount = new Amount(currencyCode, totalTaxAmount),
                 TaxSubtotal = taxSubtotals.ToArray()
@@ -365,7 +411,6 @@ namespace ZatcaApi.Helpers
             return taxTotals;
         }
 
-        
         private static LegalMonetaryTotal CalculateLegalMonetaryTotal(List<Line> lines, string currencyCode, bool amountsIncludeTax)
         {
             double lineExtensionAmount = 0;
@@ -375,31 +420,31 @@ namespace ZatcaApi.Helpers
 
             foreach (var line in lines)
             {
-                if (line != null)
+                //if (line != null)
+                //{
+                double lineQty = line.Qty;
+                double lineSalesUnitPrice = line.SalesUnitPrice;
+                double lineDiscountAmount = line.DiscountAmount;
+                double lineTaxRate = line.TaxCode?.Rate ?? 0;
+
+                if (amountsIncludeTax)
                 {
-                    double lineQty = line.Qty;
-                    double lineSalesUnitPrice = line.SalesUnitPrice;
-                    double lineDiscountAmount = line.DiscountAmount;
-                    double lineTaxRate = line.TaxCode?.Rate ?? 0;
-
-                    if (amountsIncludeTax)
-                    {
-                        // If AmountsIncludeTax is true, tax is already included in the line amounts
-                        lineExtensionAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-                        taxInclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-                        taxExclusiveAmount += Math.Round(((lineQty * lineSalesUnitPrice) - lineDiscountAmount) / (1 + (lineTaxRate / 100)), 2);
-                    }
-                    else
-                    {
-                        // If AmountsIncludeTax is false, calculate tax based on the line amounts
-                        lineExtensionAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-                        taxExclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
-                        double taxAmount = line.TaxCode != null ? Math.Round(((lineQty * lineSalesUnitPrice - lineDiscountAmount) * (lineTaxRate / 100)), 2) : 0;
-                        taxInclusiveAmount += Math.Round(((lineQty * lineSalesUnitPrice) - lineDiscountAmount) + taxAmount, 2);
-                    }
-
-                    allowanceTotalAmount += lineDiscountAmount;
+                    // If AmountsIncludeTax is true, tax is already included in the line amounts
+                    lineExtensionAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
+                    taxInclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
+                    taxExclusiveAmount += Math.Round(((lineQty * lineSalesUnitPrice) - lineDiscountAmount) / (1 + (lineTaxRate / 100)), 2);
                 }
+                else
+                {
+                    // If AmountsIncludeTax is false, calculate tax based on the line amounts
+                    lineExtensionAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
+                    taxExclusiveAmount += Math.Round((lineQty * lineSalesUnitPrice) - lineDiscountAmount, 2);
+                    double taxAmount = line.TaxCode != null ? Math.Round(((lineQty * lineSalesUnitPrice - lineDiscountAmount) * (lineTaxRate / 100)), 2) : 0;
+                    taxInclusiveAmount += Math.Round(((lineQty * lineSalesUnitPrice) - lineDiscountAmount) + taxAmount, 2);
+                }
+
+                allowanceTotalAmount += lineDiscountAmount;
+                //}
             }
 
             return new LegalMonetaryTotal

@@ -13,11 +13,11 @@ namespace Zatca.eInvoice.Helpers
         //PrepaymentTaxInvoice = 386
     }
 
-    public enum InvoiceSubType
-    {
-        Normal = 1,
-        Simplified = 2
-    }
+    //public enum InvoiceSubType
+    //{
+    //    Normal = 1,
+    //    Simplified = 2
+    //}
 
     public class InvoiceTypeCode
     {
@@ -26,11 +26,10 @@ namespace Zatca.eInvoice.Helpers
         [XmlText]
         public string Value { get; set; }
 
-        public InvoiceTypeCode(InvoiceType type, InvoiceSubType subType)
+        public InvoiceTypeCode(InvoiceType type, string subType)
         {
             string typeCode = ((int)type).ToString();
-            string subTypeCode = ((int)subType).ToString("00");
-            Name = subTypeCode + "00000";
+            Name = (subType.Trim() + "0000000")[..7];
             Value = typeCode;
         }
 

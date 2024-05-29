@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -15,13 +16,15 @@ public class ZatcaService : IZatcaService
     private readonly HttpClient _httpClient;
     private readonly GatewaySetting _settings;
     private readonly BusinessInfo _businessInfo;
+    private readonly BusinessDataCustomField _businessDataCustomField;
     private readonly AppDbContext _dbContext;
 
-    public ZatcaService(HttpClient httpClient, GatewaySetting settings, BusinessInfo businessInfo, AppDbContext dbContext)
+    public ZatcaService(HttpClient httpClient, GatewaySetting settings, BusinessInfo businessInfo, BusinessDataCustomField businessDataCustomField, AppDbContext dbContext)
     {
         _httpClient = httpClient;
         _settings = settings;
         _businessInfo = businessInfo;
+        _businessDataCustomField = businessDataCustomField;
         _dbContext = dbContext;
 
     }
@@ -36,10 +39,10 @@ public class ZatcaService : IZatcaService
                 return (HttpStatusCode.OK, result);
             };
 
-            (int ICV, int PIH) = await GetLastICVandPIHAsync();
+            (int ICV, string PIH) = await GetLastICVandPIHAsync();
 
-            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, ICV, PIH);
-            InvoiceGenerator ig = new InvoiceGenerator(
+            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, _businessDataCustomField, ICV, PIH);
+            InvoiceGenerator ig = new(
                     invoice,
                     Encoding.UTF8.GetString(Convert.FromBase64String(_settings.PCSIDBinaryToken)),
                     _settings.EcSecp256k1Privkeypem
@@ -48,6 +51,7 @@ public class ZatcaService : IZatcaService
             ig.GetSignedInvoiceXML(out string base64SignedInvoice, out string base64QrCode, out string XmlFileName, out string requestApi);
 
             var payloadJson = requestApi;
+            var requestContent = JsonConvert.DeserializeObject<PortalRequestApi>(requestApi);
 
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
@@ -57,7 +61,7 @@ public class ZatcaService : IZatcaService
 
             var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(_settings.ReportingUrl, content);
-
+            
             var resultContent = await response.Content.ReadAsStringAsync();
             var apiResponse = JsonConvert.DeserializeObject<PortalResult>(resultContent);
 
@@ -69,11 +73,15 @@ public class ZatcaService : IZatcaService
             {
                 apiResponse.ICV = ICV;
                 apiResponse.PIH = PIH;
+
+                apiResponse.InvoiceHash = requestContent.InvoiceHash; //Current InvoiceHash
                 apiResponse.Base64SignedInvoice = base64SignedInvoice;
                 apiResponse.Base64QrCode = base64QrCode;
                 apiResponse.XmlFileName = XmlFileName;
 
-                await LogApprovedInvoiceAsync(request, apiResponse);
+                if (!request.IsFromSwaggerClient) {
+                    await LogApprovedInvoiceAsync(request, apiResponse);
+                }
             }
 
             return ((HttpStatusCode)response.StatusCode, apiResponse);
@@ -81,7 +89,7 @@ public class ZatcaService : IZatcaService
         }
         catch (Exception ex)
         {
-            PortalResult portalResult = new PortalResult()
+            PortalResult portalResult = new()
             {
                 StatusCode = HttpStatusCode.OK.ToString(),
                 Error = ex.Message
@@ -101,10 +109,10 @@ public class ZatcaService : IZatcaService
                 return (HttpStatusCode.OK, result);
             };
            
-            (int ICV, int PIH) = await GetLastICVandPIHAsync();
+            (int ICV, string PIH) = await GetLastICVandPIHAsync();
 
-            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, ICV , PIH);
-            InvoiceGenerator ig = new InvoiceGenerator(
+            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, _businessDataCustomField, ICV , PIH);
+            InvoiceGenerator ig = new(
                     invoice,
                     Encoding.UTF8.GetString(Convert.FromBase64String(_settings.PCSIDBinaryToken)),
                     _settings.EcSecp256k1Privkeypem
@@ -114,6 +122,7 @@ public class ZatcaService : IZatcaService
 
 
             var payloadJson = requestApi;
+            var requestContent = JsonConvert.DeserializeObject<PortalRequestApi>(requestApi);
 
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
@@ -131,29 +140,23 @@ public class ZatcaService : IZatcaService
             {
                 var clearedInvoiceXml = Encoding.UTF8.GetString(Convert.FromBase64String(apiResponse.ClearedInvoice));
 
-                XmlSerializer serializer = new XmlSerializer(typeof(Invoice));
-                using (StringReader reader = new StringReader(clearedInvoiceXml))
+                XmlSerializer serializer = new(typeof(Invoice));
+                using (StringReader reader = new(clearedInvoiceXml))
                 {
                     var clearedInvoice = (Invoice)serializer.Deserialize(reader);
 
-                    var qrCodeNode = clearedInvoice.AdditionalDocumentReference?.ElementAtOrDefault(2)?.Attachment?.EmbeddedDocumentBinaryObject;
+                    var qrCodeNode = clearedInvoice?.AdditionalDocumentReference?
+                        .FirstOrDefault(docRef => docRef.ID.Value == "QR")?.Attachment?.EmbeddedDocumentBinaryObject;
 
                     if (qrCodeNode != null)
                     {
                         apiResponse.Base64QrCode = qrCodeNode.Value;
-                        Console.WriteLine("QR Code found: " + apiResponse.Base64QrCode);
-                    }
-                    else
-                    {
-                        Console.WriteLine("QR Code not found");
                     }
                 }
             }
 
             apiResponse.RequestType = "Invoice Clearance";
             apiResponse.StatusCode = response.StatusCode.ToString();
-
-            
 
             if (apiResponse.ClearanceStatus == "CLEARED")
             {
@@ -163,14 +166,22 @@ public class ZatcaService : IZatcaService
                 apiResponse.ClearedInvoice = null;
                 apiResponse.XmlFileName = XmlFileName;
 
-                await LogApprovedInvoiceAsync(request, apiResponse);
+                if (apiResponse.InvoiceHash == null)
+                {
+                    apiResponse.InvoiceHash = requestContent.InvoiceHash;
+                }
+
+                if (!request.IsFromSwaggerClient)
+                {
+                    await LogApprovedInvoiceAsync(request, apiResponse);
+                }
             }
 
             return ((HttpStatusCode)response.StatusCode, apiResponse);
         }
         catch (Exception ex)
         {
-            PortalResult portalResult = new PortalResult()
+            PortalResult portalResult = new()
             {
                 StatusCode = HttpStatusCode.OK.ToString(),
                 Error = ex.Message
@@ -185,16 +196,16 @@ public class ZatcaService : IZatcaService
     {
         try
         {
-            PortalResult result = await GetResultByInvoiceIdAsync(request.InvoiceId);
-            if (result != null)
-            {
-                return (HttpStatusCode.OK, result);
-            };
+            //PortalResult result = await GetResultByInvoiceIdAsync(request.InvoiceId);
+            //if (result != null)
+            //{
+            //    return (HttpStatusCode.OK, result);
+            //};
 
-            (int ICV, int PIH) = await GetLastICVandPIHAsync();
+            (int ICV, string PIH) = await GetLastICVandPIHAsync();
 
-            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, ICV, PIH);
-            InvoiceGenerator ig = new InvoiceGenerator(
+            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, _businessDataCustomField, ICV, PIH);
+            InvoiceGenerator ig = new(
                     invoice,
                     Encoding.UTF8.GetString(Convert.FromBase64String(_settings.PCSIDBinaryToken)),
                     _settings.EcSecp256k1Privkeypem
@@ -215,9 +226,8 @@ public class ZatcaService : IZatcaService
             var resultContent = await response.Content.ReadAsStringAsync();
             var apiResponse = JsonConvert.DeserializeObject<PortalResult>(resultContent);
 
-            apiResponse.RequestType = "Generate Signed Invoice";
+            apiResponse.RequestType = "Invoice Compliant Check";
             apiResponse.StatusCode = response.StatusCode.ToString();
-
 
             if (apiResponse.ReportingStatus == "REPORTED")
             {
@@ -227,14 +237,14 @@ public class ZatcaService : IZatcaService
                 apiResponse.Base64QrCode = base64QrCode;
                 apiResponse.XmlFileName = XmlFileName;
 
-                await LogApprovedInvoiceAsync(request, apiResponse);
+                //await LogApprovedInvoiceAsync(request, apiResponse);
             }
 
             return ((HttpStatusCode)response.StatusCode, apiResponse);
         }
         catch (Exception ex)
         {
-            PortalResult portalResult = new PortalResult()
+            PortalResult portalResult = new()
             {
                 StatusCode = HttpStatusCode.OK.ToString(),
                 Error = ex.Message
@@ -250,9 +260,17 @@ public class ZatcaService : IZatcaService
     {
         try
         {
+            PortalResult result = await GetResultByInvoiceIdAsync(request.InvoiceId);
+            if (result != null)
+            {
+                return (HttpStatusCode.OK, result);
+            };
 
-            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo);
-            InvoiceGenerator ig = new InvoiceGenerator(
+            (int ICV, string PIH) = await GetLastICVandPIHAsync();
+
+            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, _businessDataCustomField, ICV, PIH);
+
+            InvoiceGenerator ig = new(
                     invoice,
                     Encoding.UTF8.GetString(Convert.FromBase64String(_settings.PCSIDBinaryToken)),
                     _settings.EcSecp256k1Privkeypem
@@ -262,7 +280,7 @@ public class ZatcaService : IZatcaService
 
             PortalRequestApi portalRequestApi = JsonConvert.DeserializeObject<PortalRequestApi>(requestApi);
 
-            PortalResult portalResult = new PortalResult()
+            PortalResult portalResult = new()
             {
                 RequestType = "Generate Signed Invoice",
                 StatusCode = HttpStatusCode.OK.ToString(),
@@ -277,7 +295,7 @@ public class ZatcaService : IZatcaService
         }
         catch (Exception ex)
         {
-            PortalResult portalResult = new PortalResult()
+            PortalResult portalResult = new()
             {
                 StatusCode = HttpStatusCode.OK.ToString(),
                 Error = ex.Message
@@ -300,6 +318,7 @@ public class ZatcaService : IZatcaService
 
             Base64QrCode = response.Base64QrCode,
             Base64SignedInvoice = response.Base64SignedInvoice,
+            XmlFileName = response.XmlFileName,
 
             ICV = response.ICV,
             PIH = response.PIH,
@@ -308,7 +327,6 @@ public class ZatcaService : IZatcaService
             InvoiceHash = response.InvoiceHash,
             ClearanceStatus = response.ClearanceStatus,
             ReportingStatus = response.ReportingStatus,
-
             Timestamp = DateTime.Now
         };
 
@@ -316,7 +334,7 @@ public class ZatcaService : IZatcaService
         await _dbContext.SaveChangesAsync();
     }
 
-    private async Task<(int ICV, int PIH)> GetLastICVandPIHAsync()
+    private async Task<(int ICV, string PIH)> GetLastICVandPIHAsync()
     {
         var lastInvoice = await _dbContext.ApprovedInvoices
                                            .OrderByDescending(invoice => invoice.Timestamp)
@@ -324,10 +342,10 @@ public class ZatcaService : IZatcaService
 
         if (lastInvoice == null)
         {
-            return (1, 1);
+            return (1, "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==");
         }
 
-        return (lastInvoice.ICV+1, lastInvoice.PIH+1);
+        return (lastInvoice.ICV + 1, lastInvoice.InvoiceHash);
     }
 
     private async Task<PortalResult> GetResultByInvoiceIdAsync(string invoiceId)

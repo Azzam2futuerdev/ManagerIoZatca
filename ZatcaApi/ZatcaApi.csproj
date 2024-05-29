@@ -17,6 +17,10 @@
 	  <None Remove="Data\Zatca eInvoice.manager" />
 	  <None Remove="History.db" />
 	  <None Remove="ManagerIO Files\ManagerIO_Extension.js" />
+	  <None Remove="ManagerIO Files\QRCode.js" />
+	  <None Remove="ManagerIO Files\QRCodeFooter.js" />
+	  <None Remove="ManagerIO Files\ReadonlyQrcodeTextarea.js" />
+	  <None Remove="ManagerIO Files\TaxCategoryContent.txt" />
 	  <None Remove="ManagerIO Files\Zatca eInvoice.manager" />
 	</ItemGroup>
 

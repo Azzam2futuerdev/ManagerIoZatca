@@ -1,0 +1,131 @@
+﻿DropDown List
+
+Options for drop-down list
+
+S
+E | VATEX-SA-29
+E | VATEX-SA-29-7
+E | VATEX-SA-30
+Z | VATEX-SA-32
+Z | VATEX-SA-33
+Z | VATEX-SA-34-1
+Z | VATEX-SA-34-2
+Z | VATEX-SA-34-3
+Z | VATEX-SA-34-4
+Z | VATEX-SA-34-5
+Z | VATEX-SA-35
+Z | VATEX-SA-36
+Z | VATEX-SA-EDU
+Z | VATEX-SA-HEA
+Z | VATEX-SA-MLTRY
+O | VATEX-SA-OOS
+
+Description
+
+<button type="button" class="collapsible" style="background-color: #f2f2f2; color: #000; cursor: pointer; padding: 10px; text-align: left; border: none; outline: none; font-size: 15px; width: 100%;">VAT Information Table</button>
+<table id="vatTable" style="width: 100%; border-collapse: collapse; display: none;">
+    <thead>
+        <tr>
+            <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;">Code</th>
+            <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;">English Description</th>
+            <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;">Arabic Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">E | VATEX-SA-29</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Financial services mentioned in Article 29 of the VAT Regulations.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الخدمات المالية</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">E | VATEX-SA-29-7</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Life insurance services mentioned in Article 29 of the VAT Regulations.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">عقد تأمين على الحياة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">E | VATEX-SA-30</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Real estate transactions mentioned in Article 30 of the VAT Regulations.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الضريبة التوريدات العقارية المعفاة من</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-32</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Export of goods.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">صادرات السلع من المملكة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-33</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Export of services.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">صادرات الخدمات من المملكة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-34-1</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">The international transport of Goods.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">النقل الدولي للسلع</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-34-2</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">International transport of passengers.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">النقل الدولي للركاب</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-34-3</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Services directly connected and incidental to a Supply of international passenger transport.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الخدمات المرتبطة مباشرة أو عرضيًا بتوريد النقل الدولي للركاب</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-34-4</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Supply of a qualifying means of transport.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">توريد وسائل النقل المؤهلة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-34-5</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Any services relating to Goods or passenger transportation, as defined in article twenty five of these Regulations.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الخدمات ذات الصلة بنقل السلع أو الركاب، وفقًا للتعريف الوارد بالمادة الخامسة والعشرين من الالئحة التنفيذية لنظام ضريبة القيامة المضافة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-35</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Medicines and medical equipment.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الأدوية والمعدات الطبية</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-36</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Qualifying metals.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">المعادن المؤهلة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-EDU</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Private education to citizen.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الخدمات التعليمية الخاصة للمواطنين</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-HEA</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Private healthcare to citizen.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">الخدمات الصحية الخاصة للمواطنين</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">Z | VATEX-SA-MLTRY</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">Supply of qualified military goods</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">توريد السلع العسكرية المؤهلة</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">O | VATEX-SA-OOS</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">The reason is a free text, has to be provided by the taxpayer on case to case basis.</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">السبب يتم تزويده من قبل المكلف على أساس كل حالة على حدة</td>
+        </tr>
+    </tbody>
+</table>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var coll = document.querySelector(".collapsible");
+        var table = document.getElementById("vatTable");
+
+        coll.addEventListener("click", function() {
+            if (table.style.display === "none") {
+                table.style.display = "table";
+            } else {
+                table.style.display = "none";
+            }
+        });
+    });
+</script>

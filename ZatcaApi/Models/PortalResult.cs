@@ -11,7 +11,7 @@ namespace ZatcaApi.Models
         public int ICV { get; set; }
 
         [JsonProperty("pIH")]
-        public int PIH{ get; set; }
+        public string PIH{ get; set; }
 
         [JsonProperty("statusCode")]
         public string StatusCode { get; set; }

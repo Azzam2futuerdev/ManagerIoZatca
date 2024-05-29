@@ -50,7 +50,7 @@ namespace Zatca.eInvoice
             try
             {
                 byte[] certificateBytes = Encoding.UTF8.GetBytes(X509CertificateContent);
-                X509Certificate2 parsedCertificate = new X509Certificate2(certificateBytes);
+                X509Certificate2 parsedCertificate = new(certificateBytes);
 
                 string SignatureTimestamp = DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss");
                 string PublicKeyHashing = Convert.ToBase64String(Encoding.UTF8.GetBytes(SharedUtilities.HashSha256AsString(X509CertificateContent)));

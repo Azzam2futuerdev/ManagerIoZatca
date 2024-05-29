@@ -10,7 +10,7 @@ namespace ZatcaApi.Models
         public int Id { get; set; }
         public string InvoiceId { get; set; }
         public int InvoiceType { get; set; }
-        public int InvoiceSubType { get; set; }
+        public string InvoiceSubType { get; set; }
         public string IssueDate { get; set; }
         public string Reference { get; set; }
         public string CustomerName { get; set; }
@@ -18,7 +18,7 @@ namespace ZatcaApi.Models
 
         //Counter
         public int ICV { get; set; }
-        public int PIH { get; set; }
+        public string PIH { get; set; }
 
 
         //Portal Result
@@ -46,6 +46,11 @@ namespace ZatcaApi.Models
         [JsonProperty("base64SignedInvoice")]
         public string Base64SignedInvoice { get; set; }
 
+        [JsonProperty("xmlFileName")]
+        public string XmlFileName { get; set; }
+
+        
+
         public PortalResult ToPortalResult()
         {
             var portalResult = new PortalResult();
@@ -55,10 +60,10 @@ namespace ZatcaApi.Models
             portalResult.InvoiceHash = InvoiceHash;
             portalResult.ClearanceStatus = ClearanceStatus;
             portalResult.ReportingStatus = ReportingStatus;
-            portalResult.Timestamp = Timestamp.ToString();
+            portalResult.Timestamp = Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
             portalResult.ICV = ICV;
             portalResult.PIH = PIH;
-
+            portalResult.XmlFileName = XmlFileName;
             // New fields added
             portalResult.Base64QrCode = Base64QrCode;
             portalResult.Base64SignedInvoice = Base64SignedInvoice;
