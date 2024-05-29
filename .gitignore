@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/ZatcaApi/History.db-wal
+/ZatcaApi/History.db-shm
+/ZatcaApi/History.db
+/ZatcaApi/config.ini
