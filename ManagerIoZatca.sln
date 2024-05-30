@@ -14,7 +14,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ManagerIo-Files", "ManagerI
 		ZatcaApi\ManagerIO Files\ReadonlyQrcodeTextarea.js = ZatcaApi\ManagerIO Files\ReadonlyQrcodeTextarea.js
 		ZatcaApi\ManagerIO Files\TaxCategoryContent.txt = ZatcaApi\ManagerIO Files\TaxCategoryContent.txt
 		ZatcaApi\ManagerIO Files\Zatca eInvoice (2024-05-30) malam.manager = ZatcaApi\ManagerIO Files\Zatca eInvoice (2024-05-30) malam.manager
-		ZatcaApi\ManagerIO Files\Zatca eInvoice.manager = ZatcaApi\ManagerIO Files\Zatca eInvoice.manager
 	EndProjectSection
 EndProject
 Global
