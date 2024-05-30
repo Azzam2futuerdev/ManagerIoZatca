@@ -7,15 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZatcaApi", "ZatcaApi\ZatcaA
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zatca.eInvoice", "Zatca.eInvoice\Zatca.eInvoice.csproj", "{4230F6CD-12C8-4D86-AB6C-C606D611BF87}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ManagerIo-Files", "ManagerIo-Files", "{D38CD0E9-D121-4C0E-AE90-F47A5EF8BF47}"
-	ProjectSection(SolutionItems) = preProject
-		ZatcaApi\ManagerIO Files\ManagerIO_Extension.js = ZatcaApi\ManagerIO Files\ManagerIO_Extension.js
-		ZatcaApi\ManagerIO Files\QRCodeFooter.js = ZatcaApi\ManagerIO Files\QRCodeFooter.js
-		ZatcaApi\ManagerIO Files\ReadonlyQrcodeTextarea.js = ZatcaApi\ManagerIO Files\ReadonlyQrcodeTextarea.js
-		ZatcaApi\ManagerIO Files\TaxCategoryContent.txt = ZatcaApi\ManagerIO Files\TaxCategoryContent.txt
-		ZatcaApi\ManagerIO Files\Zatca eInvoice (2024-05-30) malam.manager = ZatcaApi\ManagerIO Files\Zatca eInvoice (2024-05-30) malam.manager
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
