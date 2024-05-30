@@ -87,6 +87,11 @@ namespace Zatca.eInvoice.Models
             get => DateTime.TryParseExact(IssueTime, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime result) ? result : DateTime.MinValue;
             set => IssueTime = value.ToString("HH:mm:ss");
         }
+
+        [XmlElement(ElementName = "DocumentTypeCode", Namespace = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2")]
+        public string DocumentTypeCode { get; set; }
+
+        
     }
 
     public class ClassifiedTaxCategory

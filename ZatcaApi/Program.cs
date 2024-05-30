@@ -22,11 +22,11 @@ builder.Services.AddCors(options =>
                           .AllowAnyHeader());
 });
 
-var (businessInfo, gatewaySettings, BusinessDataCustomField) = ConfigLoader.LoadConfiguration();
+var (businessInfo, BusinessDataCustomField, gatewaySettings) = ConfigLoader.LoadConfiguration();
 
 builder.Services.AddSingleton(businessInfo);
-builder.Services.AddSingleton(gatewaySettings);
 builder.Services.AddSingleton(BusinessDataCustomField);
+builder.Services.AddSingleton(gatewaySettings);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=History.db"));
@@ -61,8 +61,8 @@ app.UseSwaggerUI(c =>
 });
 
 
-app.MapGet("/config", (BusinessInfo businessInfo, GatewaySetting gatewaySettings, BusinessDataCustomField businessDataCustomField) =>
-    Results.Json(new { BusinessInfo = businessInfo, GatewaySettings = gatewaySettings , BusinessDataCustomField = businessDataCustomField })
+app.MapGet("/config", (BusinessInfo businessInfo, BusinessDataCustomField businessDataCustomField, GatewaySetting gatewaySettings) =>
+    Results.Json(new { BusinessInfo = businessInfo, BusinessDataCustomField = businessDataCustomField, GatewaySettings = gatewaySettings })
 
 ).WithTags("Zatca Api Gateway");
 

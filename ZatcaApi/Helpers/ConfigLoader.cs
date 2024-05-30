@@ -4,7 +4,7 @@ namespace ZatcaApi.Helpers
 {
     public static class ConfigLoader
     {
-        public static (BusinessInfo, GatewaySetting, BusinessDataCustomField) LoadConfiguration()
+        public static (BusinessInfo, BusinessDataCustomField, GatewaySetting) LoadConfiguration()
         {
             string iniPath = "config.ini";
 
@@ -16,14 +16,14 @@ namespace ZatcaApi.Helpers
             var iniConfiguration = new IniFile(iniPath);
 
             BusinessInfo businessInfo = iniConfiguration.ReadObject<BusinessInfo>("BusinessInfo");
-            GatewaySetting gatewaySettings = iniConfiguration.ReadObject<GatewaySetting>("GatewaySettings");
             BusinessDataCustomField businesDataCustomField = iniConfiguration.ReadObject<BusinessDataCustomField>("BusinesDataCustomField");
+            GatewaySetting gatewaySettings = iniConfiguration.ReadObject<GatewaySetting>("GatewaySettings");
 
             iniConfiguration.WriteObject("BusinessInfo", businessInfo);
-            iniConfiguration.WriteObject("GatewaySettings", gatewaySettings);
             iniConfiguration.WriteObject("BusinesDataCustomField", businesDataCustomField);
+            iniConfiguration.WriteObject("GatewaySettings", gatewaySettings);
 
-            return (businessInfo, gatewaySettings, businesDataCustomField);
+            return (businessInfo, businesDataCustomField, gatewaySettings);
         }
 
 
@@ -49,6 +49,15 @@ namespace ZatcaApi.Helpers
 
             ini.WriteObject("BusinessInfo", defaultBusinessInfo);
 
+            BusinessDataCustomField businessDataCustomField = new()
+            {
+                ItemTaxCategoryGuid = "6862773d-f847-486e-824b-0b42aaf0cf17",
+                PaymentMeansCodeGuid = "df844e4d-2ccc-4e46-9e3b-ac51a80868a2",
+                InstructionNoteGuid = "5bde867b-c278-4fd5-b149-e0c796ec0ddb"
+            };
+
+            ini.WriteObject("BusinessDataCustomField", businessDataCustomField);
+
             GatewaySetting defaultGatewaySettings = new()
             {
                 EcSecp256k1Privkeypem = "MHQCAQEEIL14JV+5nr/sE8Sppaf2IySovrhVBtt8+yz+g4NRKyz8oAcGBSuBBAAKoUQDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeA==",
@@ -63,14 +72,6 @@ namespace ZatcaApi.Helpers
             };
 
             ini.WriteObject("GatewaySettings", defaultGatewaySettings);
-
-            BusinessDataCustomField businessDataCustomField = new()
-            {
-                ItemTaxCategoryGuid = "6862773d-f847-486e-824b-0b42aaf0cf17",
-                PaymentMeansCodeGuid = "df844e4d-2ccc-4e46-9e3b-ac51a80868a2",
-            };
-
-            ini.WriteObject("BusinessDataCustomField", businessDataCustomField);
 
         }
     }

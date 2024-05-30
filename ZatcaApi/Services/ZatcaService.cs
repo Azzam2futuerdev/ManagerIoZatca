@@ -229,8 +229,8 @@ public class ZatcaService : IZatcaService
             apiResponse.RequestType = "Invoice Compliant Check";
             apiResponse.StatusCode = response.StatusCode.ToString();
 
-            if (apiResponse.ReportingStatus == "REPORTED")
-            {
+            //if (apiResponse.ReportingStatus == "REPORTED" || apiResponse.ClearanceStatus == "CLEARED")
+            //{
                 apiResponse.ICV = ICV;
                 apiResponse.PIH = PIH;
                 apiResponse.Base64SignedInvoice = base64SignedInvoice;
@@ -238,7 +238,7 @@ public class ZatcaService : IZatcaService
                 apiResponse.XmlFileName = XmlFileName;
 
                 //await LogApprovedInvoiceAsync(request, apiResponse);
-            }
+            //}
 
             return ((HttpStatusCode)response.StatusCode, apiResponse);
         }
@@ -313,7 +313,7 @@ public class ZatcaService : IZatcaService
             InvoiceSubType = request.InvoiceSubType,
             IssueDate = request.IssueDate,
             Reference = request.Reference,
-            CustomerName = request.CustomerName,
+            CustomerName = request.PartyName,
             InvoiceData = request.InvoiceData,
 
             Base64QrCode = response.Base64QrCode,
