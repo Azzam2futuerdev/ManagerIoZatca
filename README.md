@@ -11,41 +11,40 @@ This project serves as a tool to convert ManagerIO Invoices to Zatca Invoices an
 Currently tested using their sandbox APIs.
 
 ## How to Try It
-1. Import ManagerIO Data. 
-   There are two custom fields added in the Business data:
-   - `QrcodeCustomField`: for storing the QR code content.
-   - `CustomerInfoCustomField`: for storing tax information of customers.
-   
-   A JavaScript extension is used to send invoice data and receive responses.
 
-2. Run the ZatcaApi Project. A new database (`history.db`) and a `config.ini` file will be created automatically. 
-   By default, `config.ini` contains settings about business info and the configuration for connecting to the Zatca server. Adjust the `config.ini` file according to your business data and server connection settings.
+### ZatcaApi Gateway Installation
 
-   To check and test the API endpoints, visit:
-   - `https://localhost:7106/swagger/index.html`
-   - `http://localhost:5000/swagger/index.html`
+1. **Download the Release from GitHub**
+   - Visit the GitHub repository and download the latest release zip file.
 
-3. Open the extension in Manager Business and adjust the necessary parameters.
+2. **Extract the Zip File**
+   - Once the download is complete, locate the zip file and extract its contents to a folder of your choice.
 
-## Customer Info Format
-When adding customer information to each customer in the business data, use the following format:
+3. **Navigate to the Extracted Folder**
+   - Open the folder where you extracted the zip file.
 
-```
-"Party.PostalAddress.StreetName": "صلاح الدين | Salah Al-Din",
-"Party.PostalAddress.BuildingNumber": "1111",
-"Party.PostalAddress.CitySubdivisionName": "المروج | Al-Murooj",
-"Party.PostalAddress.CityName": "الرياض | Riyadh",
-"Party.PostalAddress.PostalZone": "12222",
-"Party.PostalAddress.Country.IdentificationCode": "SA",
-"PartyTaxScheme.CompanyID": "399999999800003",
-"PartyTaxScheme.TaxScheme.ID": "VAT",
-"PartyLegalEntity.RegistrationName": "شركة نماذج فاتورة المحدودة | Fatoora Samples LTD"
-```
+4. **Run ZatcaApi.exe or Install as a Service**
+   - To run the application directly, execute `ZatcaApi.exe`.
+   - Alternatively, you can install it as a Windows service:
+     - Right-click on `CreateWindowsServices.bat` and select "Run as administrator".
 
-## Ongoing Work
-Please note that there is still much to be done on this project, especially in the conversion of ManagerIO Invoices to Zatca Invoices. Many parts are still being improved. Your feedback and contributions are welcome to enhance the functionality and efficiency of this tool.
+5. **Open the Browser**
+   - Open your preferred web browser and navigate to `http://localhost:4454/swagger`.
+   - If the Swagger UI page opens, the gateway is ready to execute commands.
 
-## Additional Notes
-Ensure that your environment is properly configured and that you have the necessary permissions to run and modify the configuration files. The project is intended to streamline the invoice processing workflow between ManagerIO and the Zatca portal, making tax compliance more efficient.
+### ManagerIO Setup
+
+1. **Open the Manager Application**
+   - Launch the Manager application on your computer.
+
+2. **Import Business**
+   - In the Manager application, navigate to the import function.
+   - Select the business file named `fileZatca eInvoice.manager` located in the `ManagerIO-Files` folder and import it.
+
+3. **Gateway is Ready**
+   - Once the business is imported, the gateway is ready for testing and use.
+
+Please let me know if any part of this application needs correction or if you have any additional requirements. Thank you!
+
 
 .: Terima Kasih :.
