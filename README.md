@@ -45,7 +45,7 @@ Currently tested using their sandbox APIs.
 
 2. **Import Business**
    - In the Manager application, navigate to the import function.
-   - Select the business file named `fileZatca eInvoice.manager` located in the `ManagerIO-Files` folder and import it.
+   - Select the business file named `Zatca eInvoice.manager` located in the `ManagerIO-Files` folder and import it.
 
 3. **Gateway is Ready**
    - Once the business is imported, the gateway is ready for testing and use.
