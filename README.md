@@ -10,25 +10,31 @@ This project serves as a tool to convert ManagerIO Invoices to Zatca Invoices an
 
 Currently tested using their sandbox APIs.
 
+# ZatcaApi Gateway
+
 ## How to Try It
 
 ### ZatcaApi Gateway Installation
 
 1. **Download the Release from GitHub**
    - Visit the GitHub repository and download the latest release zip file.
+   
+2. **Download and Install .NET SDK**
+   - Download the .NET SDK from the following link: [Download .NET SDK](https://download.visualstudio.microsoft.com/download/pr/2e3d0e1d-ad81-4ca7-b186-49f2313547e7/ee8546e4148b87c6e14878b5055406e9/dotnet-sdk-8.0.301-win-x64.exe)
+   - Install the .NET SDK on your machine.
 
-2. **Extract the Zip File**
+3. **Extract the Zip File**
    - Once the download is complete, locate the zip file and extract its contents to a folder of your choice.
 
-3. **Navigate to the Extracted Folder**
+4. **Navigate to the Extracted Folder**
    - Open the folder where you extracted the zip file.
 
-4. **Run ZatcaApi.exe or Install as a Service**
+5. **Run ZatcaApi.exe or Install as a Service**
    - To run the application directly, execute `ZatcaApi.exe`.
    - Alternatively, you can install it as a Windows service:
      - Right-click on `CreateWindowsServices.bat` and select "Run as administrator".
 
-5. **Open the Browser**
+6. **Open the Browser**
    - Open your preferred web browser and navigate to `http://localhost:4454/swagger`.
    - If the Swagger UI page opens, the gateway is ready to execute commands.
 
