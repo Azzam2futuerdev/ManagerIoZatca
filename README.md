@@ -54,3 +54,5 @@ Please let me know if any part of this application needs correction or if you ha
 
 
 .: Terima Kasih :.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Y8Y1YRH26)
