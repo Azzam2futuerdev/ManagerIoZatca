@@ -7,6 +7,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZatcaApi", "ZatcaApi\ZatcaA
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zatca.eInvoice", "Zatca.eInvoice\Zatca.eInvoice.csproj", "{4230F6CD-12C8-4D86-AB6C-C606D611BF87}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ManagerIO-Files", "ManagerIO-Files", "{9028C5DB-CA07-450D-A182-3C477B0DA93E}"
+	ProjectSection(SolutionItems) = preProject
+		ManagerIO-Files\CreateWindowsServices.bat = ManagerIO-Files\CreateWindowsServices.bat
+		ManagerIO-Files\ManagerIO_Extension.js = ManagerIO-Files\ManagerIO_Extension.js
+		ManagerIO-Files\QRCodeFooter.js = ManagerIO-Files\QRCodeFooter.js
+		ManagerIO-Files\ReadonlyQrcodeTextarea.js = ManagerIO-Files\ReadonlyQrcodeTextarea.js
+		ManagerIO-Files\TaxCategoryContent.txt = ManagerIO-Files\TaxCategoryContent.txt
+		ManagerIO-Files\Zatca eInvoice.manager = ManagerIO-Files\Zatca eInvoice.manager
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,6 +1,6 @@
 ﻿namespace ZatcaApi.Models
 {
-    public class CustomerInfo
+    public class PartyInfo
     {
         //PartyIdentification
         //public string ID { get; set; } = "1010010000";

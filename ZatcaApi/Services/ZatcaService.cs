@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -253,54 +252,6 @@ public class ZatcaService : IZatcaService
             return (HttpStatusCode.InternalServerError, portalResult);
 
             throw;
-        }
-    }
-
-    public async Task<(HttpStatusCode StatusCode, PortalResult ResultContent)> GetSignedInvoice(GatewayRequestApi request)
-    {
-        try
-        {
-            PortalResult result = await GetResultByInvoiceIdAsync(request.InvoiceId);
-            if (result != null)
-            {
-                return (HttpStatusCode.OK, result);
-            };
-
-            (int ICV, string PIH) = await GetLastICVandPIHAsync();
-
-            Invoice invoice = MappingManager.GenerateInvoiceObject(request, _businessInfo, _businessDataCustomField, ICV, PIH);
-
-            InvoiceGenerator ig = new(
-                    invoice,
-                    Encoding.UTF8.GetString(Convert.FromBase64String(_settings.PCSIDBinaryToken)),
-                    _settings.EcSecp256k1Privkeypem
-                );
-
-            ig.GetSignedInvoiceXML(out string base64SignedInvoice, out string base64QrCode, out string XmlFileName, out string requestApi);
-
-            PortalRequestApi portalRequestApi = JsonConvert.DeserializeObject<PortalRequestApi>(requestApi);
-
-            PortalResult portalResult = new()
-            {
-                RequestType = "Generate Signed Invoice",
-                StatusCode = HttpStatusCode.OK.ToString(),
-                UUID = portalRequestApi.Uuid,
-                InvoiceHash = portalRequestApi.InvoiceHash,
-                Base64QrCode = base64QrCode,
-                Base64SignedInvoice = base64SignedInvoice,
-                XmlFileName = XmlFileName
-            };
-
-            return await Task.FromResult((HttpStatusCode.OK, portalResult));
-        }
-        catch (Exception ex)
-        {
-            PortalResult portalResult = new()
-            {
-                StatusCode = HttpStatusCode.OK.ToString(),
-                Error = ex.Message
-            };
-            return await Task.FromResult((HttpStatusCode.InternalServerError, portalResult));
         }
     }
 

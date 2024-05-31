@@ -10,6 +10,9 @@ using ZatcaApi.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseWindowsService();
+builder.Services.AddWindowsService();
+
 builder.Services.Configure<JsonOptions>(options =>
          options.SerializerOptions.DefaultIgnoreCondition
    = JsonIgnoreCondition.WhenWritingDefault | JsonIgnoreCondition.WhenWritingNull);
@@ -65,7 +68,6 @@ app.MapGet("/config", (BusinessInfo businessInfo, BusinessDataCustomField busine
     Results.Json(new { BusinessInfo = businessInfo, BusinessDataCustomField = businessDataCustomField, GatewaySettings = gatewaySettings })
 
 ).WithTags("Zatca Api Gateway");
-
 
 
 app.MapGet("/approved-invoice", async (IRepository<ApprovedInvoice> repository, int page = 1, int pageSize = 50) =>
@@ -136,7 +138,6 @@ app.MapPost("/invoice-clearance", async (GatewayRequestApi request, IZatcaServic
   .WithName("Clearance");
 
 
-
 app.MapPost("/compliance-invoice", async (GatewayRequestApi request, IZatcaService zatcaService) =>
 {
     if (request == null)
@@ -150,21 +151,5 @@ app.MapPost("/compliance-invoice", async (GatewayRequestApi request, IZatcaServi
 
 }).WithTags("Zatca eInvoice")
   .WithName("Compliance");
-
-
-
-app.MapPost("/signed-invoice", async (GatewayRequestApi request, IZatcaService zatcaService) =>
-{
-    if (request == null)
-    {
-        return Results.BadRequest("Invalid JSON payload");
-    }
-
-    var (statusCode, resultContent) = await zatcaService.GetSignedInvoice(request);
-
-    return Results.Ok(resultContent);
-
-}).WithTags("Zatca eInvoice")
-  .WithName("SignedInvoice");
 
 app.Run();

@@ -174,9 +174,9 @@ namespace ZatcaApi.Helpers
             };
         }
 
-        private static AccountingCustomerParty CreateAccountingCustomerParty(string customerInfoJson)
+        private static AccountingCustomerParty CreateAccountingCustomerParty(string partyTaxInfoJson)
         {
-            CustomerInfo customerInfo = CustomerPartyParser.ParseCustomerParty(customerInfoJson);
+            PartyInfo partyInfo = PartyInfoParser.ParsePartyInfo(partyTaxInfoJson);
 
             return new AccountingCustomerParty
             {
@@ -184,27 +184,27 @@ namespace ZatcaApi.Helpers
                 {
                     PostalAddress = new PostalAddress
                     {
-                        StreetName = customerInfo.StreetName,
-                        BuildingNumber = customerInfo.BuildingNumber,
-                        CitySubdivisionName = customerInfo.CitySubdivisionName,
-                        CityName = customerInfo.CityName,
-                        PostalZone = customerInfo.PostalZone,
+                        StreetName = partyInfo.StreetName,
+                        BuildingNumber = partyInfo.BuildingNumber,
+                        CitySubdivisionName = partyInfo.CitySubdivisionName,
+                        CityName = partyInfo.CityName,
+                        PostalZone = partyInfo.PostalZone,
                         Country = new Country
                         {
-                            IdentificationCode = customerInfo.CountryIdentificationCode
+                            IdentificationCode = partyInfo.CountryIdentificationCode
                         }
                     },
                     PartyTaxScheme = new PartyTaxScheme
                     {
-                        CompanyID = customerInfo.CompanyID,
+                        CompanyID = partyInfo.CompanyID,
                         TaxScheme = new TaxScheme
                         {
-                            ID = new ID(customerInfo.TaxSchemeID)
+                            ID = new ID(partyInfo.TaxSchemeID)
                         }
                     },
                     PartyLegalEntity = new PartyLegalEntity
                     {
-                        RegistrationName = customerInfo.RegistrationName
+                        RegistrationName = partyInfo.RegistrationName
                     }
                 }
             };
